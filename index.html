@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>BairroLivre — Delivery do seu bairro</title>
+<meta name="description" content="Comida, gás, água, farmácia, hortifrúti, pet e serviços do seu bairro em um só app.">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#16a34a">
+<link rel="icon" href="/icon-192.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="bg-[#f6f7f6] text-zinc-900">
+<!-- TOPO -->
+<header class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b">
+  <div class="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
+    <button onclick="showView('home')" class="flex items-center gap-2">
+      <span class="w-9 h-9 rounded-xl bg-green-600 text-white grid place-items-center text-xl font-black">B</span>
+      <span class="font-black text-lg leading-none">Bairro<span class="text-green-600">Livre</span><span class="block text-[11px] font-medium text-zinc-500">delivery do seu bairro</span></span>
+    </button>
+    <div class="ml-auto flex gap-2">
+      <button onclick="showView('merchant')" class="text-xs font-bold border rounded-full px-3 py-2">Sou lojista</button>
+      <button onclick="showView('admin')" class="text-xs font-bold border rounded-full px-3 py-2">Admin</button>
+    </div>
+  </div>
+  <div class="max-w-3xl mx-auto px-4 pb-3">
+    <div class="flex gap-2">
+      <input id="searchInput" oninput="onSearch(this.value)" placeholder="Buscar loja, lanche, gás, remédio..." class="flex-1 border rounded-full px-4 py-2.5 text-sm outline-none focus:ring-2 ring-green-600 bg-zinc-50">
+      <button onclick="openCart()" class="relative bg-zinc-900 text-white rounded-full px-4 py-2.5 text-sm font-bold">🛒 Carrinho <span id="cartCount" class="absolute -top-1 -right-1 bg-green-600 text-white text-[11px] w-5 h-5 rounded-full grid place-items-center">0</span></button>
+    </div>
+    <div id="categoryPills" class="flex gap-2 overflow-x-auto mt-3 pb-1 no-scrollbar"></div>
+  </div>
+</header>
+
+<main class="max-w-3xl mx-auto px-4 pb-32">
+  <!-- HOME -->
+  <section id="view-home">
+    <div class="mt-4 rounded-2xl overflow-hidden bg-zinc-900 text-white relative">
+      <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200&q=80" class="w-full h-40 object-cover opacity-70" alt="Comida do bairro">
+      <div class="absolute inset-0 p-4 flex flex-col justify-end">
+        <p class="text-xs font-bold tracking-wide text-green-300">HOJE NO SEU BAIRRO</p>
+        <h1 class="text-2xl font-black leading-tight">Tudo que o bairro tem,<br>em um só lugar.</h1>
+        <button onclick="scrollToStores()" class="mt-2 w-fit bg-white text-zinc-900 text-sm font-bold px-4 py-2 rounded-full">Ver lojas abertas →</button>
+      </div>
+    </div>
+    <div class="flex items-center justify-between mt-5">
+      <h2 class="font-black text-lg">Lojas perto de você</h2>
+      <button id="installBtn" onclick="promptInstall()" class="hidden bg-green-600 text-white text-xs font-bold px-3 py-2 rounded-full">📲 Instalar App</button>
+    </div>
+    <p class="text-xs text-zinc-500">Toque em uma loja para ver cardápio, preço promocional e falar direto com o lojista.</p>
+    <div id="storesGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3"></div>
+    <div id="storesEmpty" class="hidden text-center py-10 text-sm text-zinc-500">Nenhuma loja encontrada para este filtro. Tente outro nicho ou busca.</div>
+  </section>
+
+  <!-- LOJA -->
+  <section id="view-store" class="hidden">
+    <button onclick="showView('home')" class="text-sm font-bold mt-4">← Voltar</button>
+    <div id="storeHeader" class="mt-2"></div>
+    <div class="flex gap-2 mt-3">
+      <button onclick="openChatForStore()" class="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl text-sm">💬 Tirar dúvida / Áudio</button>
+      <button onclick="openReviews()" class="flex-1 border font-bold py-3 rounded-xl text-sm">⭐ Avaliações</button>
+    </div>
+    <h3 class="font-black mt-5 mb-2">Cardápio / Produtos</h3>
+    <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+  </section>
+
+  <!-- RASTREAMENTO -->
+  <section id="view-tracking" class="hidden">
+    <button onclick="showView('home')" class="text-sm font-bold mt-4">← Início</button>
+    <h2 class="font-black text-xl mt-2">Acompanhar pedido</h2>
+    <div class="mt-3 flex gap-2">
+      <input id="trackPhone" placeholder="Seu WhatsApp (só números)" class="flex-1 border rounded-xl px-3 py-2.5 text-sm">
+      <button onclick="loadMyOrders()" class="bg-zinc-900 text-white px-4 rounded-xl text-sm font-bold">Buscar</button>
+    </div>
+    <div id="myOrders" class="mt-4 space-y-3"></div>
+    <div id="trackingDetail" class="mt-4"></div>
+  </section>
+
+  <!-- LOJISTA -->
+  <section id="view-merchant" class="hidden">
+    <h2 class="font-black text-xl mt-4">Painel do Lojista</h2>
+    <p class="text-sm text-zinc-500">Gerencie pedidos, cardápio, loja aberta/fechada e QR do balcão.</p>
+    <div id="merchantLogin" class="bg-white rounded-2xl p-4 mt-3 space-y-2 border">
+      <label class="text-xs font-bold">Slug da loja (ex: pizzaria-do-joao)</label>
+      <input id="merchantSlug" placeholder="slug-da-loja" class="w-full border rounded-xl px-3 py-2.5 text-sm">
+      <label class="text-xs font-bold">Token do lojista (recebido ao criar a loja)</label>
+      <input id="merchantToken" placeholder="access_token" class="w-full border rounded-xl px-3 py-2.5 text-sm">
+      <button onclick="merchantLogin()" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl">Entrar no painel</button>
+      <button onclick="showCreateStore()" class="w-full border font-bold py-2.5 rounded-xl text-sm">+ Criar nova loja</button>
+      <div id="createStoreBox" class="hidden space-y-2 pt-2 border-t">
+        <input id="newStoreName" placeholder="Nome da loja" class="w-full border rounded-xl px-3 py-2.5 text-sm">
+        <select id="newStoreCategory" class="w-full border rounded-xl px-3 py-2.5 text-sm">
+          <option value="food">🍔 Alimentação</option><option value="gas">🔥 Gás</option><option value="water">💧 Água</option><option value="pharmacy">💊 Farmácia</option><option value="hortifruti">🥦 Hortifrúti</option><option value="pet">🐾 Pet Shop</option><option value="services">🛠️ Serviços</option>
+        </select>
+        <input id="newStoreWhatsapp" placeholder="WhatsApp da loja (DDD + número)" class="w-full border rounded-xl px-3 py-2.5 text-sm">
+        <input id="newStoreAddress" placeholder="Endereço da loja" class="w-full border rounded-xl px-3 py-2.5 text-sm">
+        <button onclick="createStore()" class="w-full bg-zinc-900 text-white font-bold py-3 rounded-xl">Criar loja e gerar token</button>
+        <p id="createStoreResult" class="text-xs"></p>
+      </div>
+    </div>
+    <div id="merchantPanel" class="hidden mt-3 space-y-4">
+      <div class="bg-white rounded-2xl p-4 border">
+        <div class="flex items-center justify-between">
+          <div><p id="mStoreName" class="font-black"></p><p id="mStoreMeta" class="text-xs text-zinc-500"></p></div>
+          <button id="mToggleOpen" onclick="toggleStoreOpen()" class="font-bold px-4 py-2 rounded-full text-sm bg-green-600 text-white">Aberta</button>
+        </div>
+        <div class="grid grid-cols-3 gap-2 mt-3 text-center">
+          <button onclick="showQR()" class="border rounded-xl py-2 text-xs font-bold">📷 QR Balcão</button>
+          <button onclick="showSubscription()" class="border rounded-xl py-2 text-xs font-bold">💳 Assinatura R$15</button>
+          <button onclick="merchantLogout()" class="border rounded-xl py-2 text-xs font-bold">Sair</button>
+        </div>
+        <div id="qrBox" class="hidden mt-3 text-center"><img id="qrImg" class="mx-auto w-44 h-44 border rounded-xl"><p class="text-xs mt-1">Imprima e coloque no balcão. Cliente aponta e cai direto na sua loja.</p><p id="qrLink" class="text-[11px] break-all text-zinc-500"></p></div>
+        <div id="subBox" class="hidden mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm"><b>Assinatura mensal — R$ 15,00/mês via Pix</b><p class="text-xs mt-1">Pague o Pix abaixo e envie o comprovante no WhatsApp do suporte. O Admin ativa sua assinatura em até 1 dia útil.</p><p class="mt-2 font-mono text-xs bg-white border rounded-lg p-2">Chave Pix: <span id="subPixKey">suporte@bairrolivre.app</span></p><button onclick="copyPix()" class="mt-2 bg-zinc-900 text-white text-xs font-bold px-3 py-2 rounded-full">Copiar chave Pix</button></div>
+      </div>
+      <div class="bg-white rounded-2xl p-4 border">
+        <h3 class="font-black">Pedidos ao vivo</h3>
+        <div class="flex gap-2 mt-2 overflow-x-auto"><button onclick="setOrderFilter('all')" class="orderFilterBtn border px-3 py-1.5 rounded-full text-xs font-bold">Todos</button><button onclick="setOrderFilter('pending')" class="orderFilterBtn border px-3 py-1.5 rounded-full text-xs font-bold">Pendentes</button><button onclick="setOrderFilter('preparing')" class="orderFilterBtn border px-3 py-1.5 rounded-full text-xs font-bold">Preparando</button><button onclick="setOrderFilter('out_for_delivery')" class="orderFilterBtn border px-3 py-1.5 rounded-full text-xs font-bold">Entrega</button></div>
+        <div id="merchantOrders" class="mt-3 space-y-3"></div>
+      </div>
+      <div class="bg-white rounded-2xl p-4 border">
+        <h3 class="font-black">Cardápio / Estoque</h3>
+        <div class="grid grid-cols-2 gap-2 mt-3">
+          <input id="prodName" placeholder="Nome do produto" class="border rounded-xl px-3 py-2.5 text-sm">
+          <input id="prodPrice" placeholder="Preço (ex: 29.90)" type="number" step="0.01" class="border rounded-xl px-3 py-2.5 text-sm">
+          <input id="prodPromo" placeholder="Preço promocional (opcional)" type="number" step="0.01" class="border rounded-xl px-3 py-2.5 text-sm">
+          <input id="prodCat" placeholder="Categoria (ex: Lanches)" class="border rounded-xl px-3 py-2.5 text-sm">
+          <input id="prodDesc" placeholder="Descrição" class="col-span-2 border rounded-xl px-3 py-2.5 text-sm">
+          <label class="col-span-2 border rounded-xl px-3 py-2.5 text-sm bg-zinc-50 block">📸 Foto do produto <input id="prodImage" type="file" accept="image/*" class="block mt-1 text-xs"></label>
+        </div>
+        <button onclick="createProduct()" class="w-full bg-zinc-900 text-white font-bold py-3 rounded-xl mt-2">+ Adicionar produto</button>
+        <div id="merchantProducts" class="mt-3 space-y-2"></div>
+      </div>
+      <div class="bg-white rounded-2xl p-4 border">
+        <h3 class="font-black">Chat da loja</h3>
+        <div id="merchantMessages" class="mt-2 space-y-2 max-h-72 overflow-y-auto"></div>
+        <div class="flex gap-2 mt-2"><input id="merchantReply" placeholder="Responder cliente..." class="flex-1 border rounded-xl px-3 py-2 text-sm"><button onclick="merchantReply()" class="bg-green-600 text-white px-4 rounded-xl font-bold text-sm">Enviar</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADMIN -->
+  <section id="view-admin" class="hidden">
+    <h2 class="font-black text-xl mt-4">Painel Master</h2>
+    <div class="bg-white rounded-2xl p-4 mt-3 border space-y-2">
+      <input id="adminToken" placeholder="Token do Admin (ADMIN_TOKEN do wrangler.toml)" class="w-full border rounded-xl px-3 py-2.5 text-sm">
+      <button onclick="loadAdmin()" class="w-full bg-zinc-900 text-white font-bold py-3 rounded-xl">Ver todas as lojas</button>
+    </div>
+    <div id="adminList" class="mt-3 space-y-3"></div>
+  </section>
+</main>
+
+<!-- BOTÃO FLUTUANTE -->
+<button onclick="openTracking()" class="fixed bottom-20 right-4 z-40 bg-zinc-900 text-white text-sm font-bold px-4 py-3 rounded-full shadow-lg">📦 Meus pedidos</button>
+<a id="supportFloat" href="https://wa.me/5511999999999?text=Ol%C3%A1%2C%20preciso%20de%20ajuda%20no%20BairroLivre" target="_blank" class="fixed bottom-20 left-4 z-40 bg-green-500 text-white w-12 h-12 rounded-full grid place-items-center text-xl shadow-lg">💬</a>
+
+<!-- CARRINHO / CHECKOUT -->
+<div id="cartDrawer" class="hidden fixed inset-0 z-50">
+  <div class="absolute inset-0 bg-black/50" onclick="closeCart()"></div>
+  <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[92vh] overflow-y-auto">
+    <div class="max-w-3xl mx-auto p-4">
+      <div class="flex justify-between items-center"><h3 class="font-black text-lg">Seu pedido</h3><button onclick="closeCart()" class="font-bold">✕</button></div>
+      <div id="cartItems" class="mt-3 space-y-2"></div>
+      <div class="mt-4 border-t pt-3 space-y-2">
+        <p class="font-black text-sm">Seus dados (salvos para próxima compra)</p>
+        <input id="coName" placeholder="Seu nome" class="w-full border rounded-xl px-3 py-2.5 text-sm">
+        <input id="coPhone" placeholder="Seu WhatsApp (só números)" onblur="lookupUser()" class="w-full border rounded-xl px-3 py-2.5 text-sm">
+        <input id="coAddress" placeholder="Endereço de entrega completo" class="w-full border rounded-xl px-3 py-2.5 text-sm">
+        <p class="font-black text-sm pt-2">Pagamento</p>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="border rounded-xl p-3 text-sm flex gap-2"><input type="radio" name="pay" value="pix_manual" checked> Pix (chave da loja)</label>
+          <label class="border rounded-xl p-3 text-sm flex gap-2"><input type="radio" name="pay" value="pix_platform"> Pix direto</label>
+          <label class="border rounded-xl p-3 text-sm flex gap-2"><input type="radio" name="pay" value="cash"> Dinheiro</label>
+          <label class="border rounded-xl p-3 text-sm flex gap-2"><input type="radio" name="pay" value="card"> Cartão na entrega</label>
+        </div>
+        <input id="coTroco" placeholder="Troco para quanto? (só se for dinheiro)" class="w-full border rounded-xl px-3 py-2.5 text-sm">
+        <p class="text-xs text-zinc-500">Pix direto usa o Mercado Pago OAuth do lojista quando configurado. Se não houver, o app mostra a chave Pix manual da loja.</p>
+        <div class="flex justify-between font-black text-lg"><span>Total</span><span id="cartTotal">R$ 0,00</span></div>
+        <button onclick="checkout()" class="w-full bg-green-600 text-white font-bold py-3.5 rounded-xl">Confirmar pedido</button>
+        <button onclick="checkoutWhatsApp()" class="w-full border font-bold py-3 rounded-xl">⚡ Fechar rápido via WhatsApp</button>
+        <p id="checkoutMsg" class="text-xs text-center"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHAT -->
+<div id="chatModal" class="hidden fixed inset-0 z-50">
+  <div class="absolute inset-0 bg-black/50" onclick="closeChat()"></div>
+  <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[88vh] flex flex-col">
+    <div class="max-w-3xl w-full mx-auto p-4 flex justify-between"><h3 class="font-black">💬 Conversa com a loja</h3><button onclick="closeChat()" class="font-bold">✕</button></div>
+    <div id="chatMessages" class="flex-1 overflow-y-auto px-4 space-y-2 max-h-[50vh]"></div>
+    <div class="p-4 border-t flex gap-2"><input id="chatInput" placeholder="Pergunte sobre o produto..." class="flex-1 border rounded-full px-4 py-2.5 text-sm"><button onclick="sendChatText()" class="bg-zinc-900 text-white px-4 rounded-full font-bold text-sm">Enviar</button><button id="recBtn" onclick="toggleRecord()" class="bg-red-500 text-white px-4 rounded-full font-bold text-sm">🎙️</button></div>
+    <p class="text-[11px] text-center pb-3 text-zinc-500">Áudio é gravado no navegador e salvo no R2. Toque em 🎙️ para gravar/parar.</p>
+  </div>
+</div>
+
+<!-- AVALIAÇÃO -->
+<div id="reviewModal" class="hidden fixed inset-0 z-50">
+  <div class="absolute inset-0 bg-black/60"></div>
+  <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl"><div class="max-w-md mx-auto p-5 text-center">
+    <h3 class="font-black text-lg">Como foi seu pedido? ⭐</h3><p class="text-sm text-zinc-500">Sua avaliação aparece pública na loja.</p>
+    <div id="starsRow" class="flex justify-center gap-2 text-4xl mt-3"></div>
+    <textarea id="reviewComment" placeholder="Conte como foi..." class="w-full border rounded-xl p-3 mt-3 text-sm"></textarea>
+    <button onclick="submitReview()" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl mt-2">Enviar avaliação</button>
+  </div></div>
+</div>
+
+<script>
+window.BAIRROLIVRE_API = localStorage.getItem('bairrolivre_api') || 'https://bairrolivre-api.jeanaguiar636.workers.dev';
+// 👇 TROQUE AQUI: sua chave Pix que recebe os R$ 15/mês
+window.BAIRROLIVRE_PIX_KEY = 'SUA-CHAVE-PIX-AQUI';
+</script>
+<script src="/app.js"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
+</body>
+</html>
